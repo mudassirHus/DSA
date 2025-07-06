@@ -1,0 +1,11 @@
+#File and folders to ignore
+.vscode
+*.o
+*.exe
+main
+builds/
+bin
+obj
+
+
+
