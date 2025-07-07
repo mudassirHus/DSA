@@ -220,11 +220,18 @@ TEST(ArraySequence_SuccessCases_SetAt, ShouldReturnExpectedValues_For_All_Set)
     FillSequenceWith(DoubleIndex);
     CheckSequenceWith(DoubleIndex);
 }
+// clang-format off
 TEST_GROUP(ArraySequence_FailureCases_InsertAt)
 {
     ArraySeq* seq = NULL;
-    void setup() { seq = Build(CorrectAllocationSize); }
-    void teardown() { FreeSeq(&seq); }
+    void setup() 
+    { 
+        seq = Build(CorrectAllocationSize); 
+    }
+    void teardown() 
+    { 
+        FreeSeq(&seq); 
+    }
 
     void AssertInsertAtFailureForNull(size_t index, int expectedValue)
     {
@@ -240,6 +247,7 @@ TEST_GROUP(ArraySequence_FailureCases_InsertAt)
         CHECK_FALSE(InsertAt(outOfBoundIndex, &seq, expectedValue));
     }
 };
+// clang-format on
 TEST(ArraySequence_FailureCases_InsertAt, ShouldReturnNull_When_Failed_Allocation)
 {
     AssertInsertAtFailureForNull(12, 120);
@@ -289,7 +297,7 @@ TEST(ArraySequence_SuccessCases_InsertAt, ShouldReturnExpectedValues_When_Insert
     FillSequenceWith(actual, 5);
 
     CHECK_TRUE(InsertAt(2, &seq, 999));
-    
+
     CheckSequenecWith(expected, 6);
 }
 TEST(ArraySequence_SuccessCases_InsertAt, ShouldReturnExpectedValues_When_Inserted_In_First)
@@ -299,7 +307,7 @@ TEST(ArraySequence_SuccessCases_InsertAt, ShouldReturnExpectedValues_When_Insert
     FillSequenceWith(actual, 5);
 
     CHECK_TRUE(InsertAt(0, &seq, 999));
-    
+
     CheckSequenecWith(expected, 6);
 }
 TEST(ArraySequence_SuccessCases_InsertAt, ShouldReturnExpectedValues_When_Inserted_In_Last)
@@ -309,7 +317,7 @@ TEST(ArraySequence_SuccessCases_InsertAt, ShouldReturnExpectedValues_When_Insert
     FillSequenceWith(actual, 5);
 
     CHECK_TRUE(InsertAt(4, &seq, 999));
-    
+
     CheckSequenecWith(expected, 6);
 }
 // clang-format off
@@ -343,9 +351,8 @@ TEST(ArraySequence_FailureCases_RemoveAt, ShouldReturnNull_When_Failed_Allocatio
 {
     AssertRemoveAtFailureForNull(12);
     AssertRemoveAtFailureNullPointer(16);
-    
 }
-TEST(ArraySequence_FailureCases_RemoveAt, ShouldReturnNull_When_Out_Of_Bound) 
+TEST(ArraySequence_FailureCases_RemoveAt, ShouldReturnNull_When_Out_Of_Bound)
 {
     AssertRemoveAtFailureForOutOfBound(9900);
 }
@@ -388,7 +395,7 @@ TEST(ArraySequence_SuccessCases_RemoveAt, ShouldReturnExpectedValues_When_Remove
     FillSequenceWith(actual, 5);
 
     CHECK_TRUE(RemoveAt(2, &seq));
-    
+
     CheckSequenecWith(expected, 4);
 }
 TEST(ArraySequence_SuccessCases_RemoveAt, ShouldReturnExpectedValues_When_Removed_In_First)
@@ -398,7 +405,7 @@ TEST(ArraySequence_SuccessCases_RemoveAt, ShouldReturnExpectedValues_When_Remove
     FillSequenceWith(actual, 5);
 
     CHECK_TRUE(RemoveAt(0, &seq));
-    
+
     CheckSequenecWith(expected, 4);
 }
 TEST(ArraySequence_SuccessCases_RemoveAt, ShouldReturnExpectedValues_When_Removed_In_Last)
@@ -408,7 +415,7 @@ TEST(ArraySequence_SuccessCases_RemoveAt, ShouldReturnExpectedValues_When_Remove
     FillSequenceWith(actual, 5);
 
     CHECK_TRUE(RemoveAt(4, &seq));
-    
+
     CheckSequenecWith(expected, 4);
 }
 
@@ -480,7 +487,7 @@ TEST(ArraySequence_SuccessCases_InsertFirst, ShouldReturnExpectedValues_When_Ins
     FillSequenceWith(actual, 5);
 
     CHECK_TRUE(InsertFirst(&seq, 999));
-    
+
     CheckSequenecWith(expected, 6);
 }
 
@@ -552,7 +559,7 @@ TEST(ArraySequence_SuccessCases_InsertLast, ShouldReturnExpectedValues_When_Inse
     FillSequenceWith(actual, 5);
 
     CHECK_TRUE(InsertLast(&seq, 999));
-    
+
     CheckSequenecWith(expected, 6);
 }
 
@@ -624,7 +631,7 @@ TEST(ArraySequence_SuccessCases_RemoveFirst, ShouldReturnExpectedValues_When_Rem
     FillSequenceWith(actual, 5);
 
     CHECK_TRUE(RemoveFirst(&seq));
-    
+
     CheckSequenecWith(expected, 4);
 }
 
@@ -696,6 +703,6 @@ TEST(ArraySequence_SuccessCases_RemoveLast, ShouldReturnExpectedValues_When_Remo
     FillSequenceWith(actual, 5);
 
     CHECK_TRUE(RemoveLast(&seq));
-    
+
     CheckSequenecWith(expected, 4);
 }
