@@ -4,6 +4,8 @@ extern "C"
 #include "../include/ArraySeq.h"
 #include "../include/Core.h"
 }
+const size_t CorrectAllocationSize = 100;
+static size_t DoubleIndex(size_t i) { return i * 2; }
 
 static MallocFunc OriginalMalloc = Malloc;
 static int FailCountAt = 0;
@@ -56,14 +58,14 @@ TEST_GROUP(ArraySequence_SuccessCases_Build)
     ArraySeq* seq = NULL;
     void setup()
     {
-        seq = Build(100);
+        seq = Build(CorrectAllocationSize);
     }
     void teardown() 
     { 
         FreeSeq(&seq);
     }
     // Helper
-    void AssertAllocationSuccess(size_t size, ArraySeq* seq)
+    void AssertAllocationSuccess(size_t size)
     {
         CHECK_TRUE(NULL != seq);
         CHECK_TRUE(NULL != seq->Sequence);
@@ -73,7 +75,7 @@ TEST_GROUP(ArraySequence_SuccessCases_Build)
 // clang-format on
 TEST(ArraySequence_SuccessCases_Build, Allocates_When_Size_Is_Valid)
 {
-    AssertAllocationSuccess(100, seq);
+    AssertAllocationSuccess(100);
 }
 
 // clang-format off
@@ -82,7 +84,7 @@ TEST_GROUP(ArraySequence_SuccessCases_Free)
     ArraySeq* seq = NULL;
     void setup()
     {
-        seq = Build(100);
+        seq = Build(CorrectAllocationSize);
     }
     // Helper
     void AssertAllocationFreeSuccess(ArraySeq* seq)
@@ -94,8 +96,8 @@ TEST_GROUP(ArraySequence_SuccessCases_Free)
 // clang-format on
 TEST(ArraySequence_SuccessCases_Free, Ignores_Null_Parameter)
 {
-    ArraySeq* NullSequence = NULL;
-    AssertAllocationFreeSuccess(NullSequence);
+    seq = NULL;
+    AssertAllocationFreeSuccess(seq);
 }
 TEST(ArraySequence_SuccessCases_Free, Free) { AssertAllocationFreeSuccess(seq); }
 
@@ -105,7 +107,7 @@ TEST_GROUP(ArraySequence_FailedCases_GetAt)
     ArraySeq* seq = NULL;
     void setup()
     {
-        seq = Build(10);
+        seq = Build(CorrectAllocationSize);
     }
     void teardown() 
     {
@@ -134,207 +136,566 @@ TEST_GROUP(ArraySequence_SuccessCases_GetAt)
     ArraySeq* seq = NULL;
     void setup()
     {
-        seq = Build(10);
+        seq = Build(CorrectAllocationSize);
     }
     void teardown() 
     {
         FreeSeq(&seq); 
     }
-    void AssertGetAt(size_t index, ArraySeq* sequence, int expectedValue)
+    void AssertGetAt(size_t index, int expectedValue)
     {
         int actualValue = -100;
-        CHECK_TRUE(GetAt(index, sequence, &actualValue));
+        CHECK_TRUE(GetAt(index, seq, &actualValue));
         LONGS_EQUAL(expectedValue, actualValue);
     }
 };
 // clang-format on
-TEST(ArraySequence_SuccessCases_GetAt, ShouldReturnZero_After_Allocation)
-{
-    AssertGetAt(4, seq, 0);
-}
-
-
-/* TODO: Clean up from here
-TEST(ArraySeqApi, SetAt_Uninit) { CHECK_FALSE(SetAt(4, NULL, 65)); }
-TEST(ArraySeqApi, SetAt_Out_Of_Bound) { CHECK_FALSE(SetAt(90000, NULL, 65)); }
-TEST(ArraySeqApi, SetAt_In_Bound) { CHECK_TRUE(SetAt(5, seq, 65)); }
-TEST(ArraySeqApi, GetAt_AfterSet)
-{
-    SetAt(4, seq, 65);
-    int actual = 0;
-    CHECK_TRUE(GetAt(4, seq, &actual));
-    LONGS_EQUAL(65, actual);
-}
-TEST(ArraySeqApi, GetAt_AfterAllSet)
-{
-    for (size_t i = 0; i < seq->Length; i++)
-    {
-        CHECK_TRUE(SetAt(i, seq, i + 1));
-    }
-
-    int actual = 0;
-    for (size_t i = 0; i < seq->Length; i++)
-    {
-        CHECK_TRUE(GetAt(i, seq, &actual));
-        LONGS_EQUAL(i + 1, actual);
-    }
-}
-
-TEST(ArraySeqApi, InsertAt_UnInit)
+TEST(ArraySequence_SuccessCases_GetAt, ShouldReturnZero_After_Allocation) { AssertGetAt(4, 0); }
+// clang-format off
+TEST_GROUP(ArraySequence_FailureCases_SetAt)
 {
     ArraySeq* seq = NULL;
-    CHECK_FALSE(InsertAt(9000, NULL, 77));
-    CHECK_FALSE(InsertAt(91000, &seq, 77));
-}
-TEST(ArraySeqApi, InsertAt_Out_Of_Bound) { CHECK_FALSE(InsertAt(9000, &seq, 77)); }
-TEST(ArraySeqApi, InsertAt_InBound)
+    void setup()
+    {
+        seq = Build(CorrectAllocationSize);
+    }
+    void teardown() 
+    {
+        FreeSeq(&seq); 
+    }
+    void AssertSetAtFailure(size_t index, ArraySeq* seq, int expectedValue)
+    {
+        CHECK_FALSE(SetAt(index, seq, expectedValue));
+    }
+};
+// clang-format on
+TEST(ArraySequence_FailureCases_SetAt, ShouldReturnNull_For_Failed_Allocation)
 {
-    int actualValues[10] = {0, 11, 22, 33, 44, 55, 66, 77, 88, 99};
-    for (size_t i = 0; i < seq->Length; i++)
-    {
-        SetAt(i, seq, actualValues[i]);
-    }
-    LONGS_EQUAL(10, seq->Length);
-    CHECK_TRUE(InsertAt(4, &seq, 919191));
-    LONGS_EQUAL(11, seq->Length);
-
-    int expectedValues[11] = {0, 11, 22, 33, 919191, 44, 55, 66, 77, 88, 99};
-    for (size_t i = 0; i < seq->Length; i++)
-    {
-        int actualVal = -1;
-        CHECK_TRUE(GetAt(i, seq, &actualVal));
-        LONGS_EQUAL(expectedValues[i], actualVal);
-    }
+    AssertSetAtFailure(4, NULL, 65);
 }
-TEST(ArraySeqApi, RemoveAt_Unit)
+TEST(ArraySequence_FailureCases_SetAt, ShouldReturnNull_For_Out_Of_Bound)
+{
+    AssertSetAtFailure(99000, seq, 95);
+}
+// clang-format off
+TEST_GROUP(ArraySequence_SuccessCases_SetAt)
 {
     ArraySeq* seq = NULL;
-    CHECK_FALSE(RemoveAt(9000, NULL));
-    CHECK_FALSE(RemoveAt(9900, &seq));
-}
-TEST(ArraySeqApi, RemoveAt_Out_Of_Bound) { CHECK_FALSE(RemoveAt(9000, &seq)); }
-TEST(ArraySeqApi, RemoveAt_InBound)
-{
-    int actualValues[10] = {0, 11, 22, 33, 44, 55, 66, 77, 88, 99};
-    for (size_t i = 0; i < seq->Length; i++)
+    void setup()
     {
-        SetAt(i, seq, actualValues[i]);
+        seq = Build(CorrectAllocationSize);
     }
-    LONGS_EQUAL(10, seq->Length);
+    void teardown() 
+    {
+        FreeSeq(&seq); 
+    }
+    void AssertSetAtSucess(size_t index, int expectedValue)
+    {
+        CHECK_TRUE(SetAt(index, seq, expectedValue));
+        int actualValue = -1;
+        GetAt(index, seq, &actualValue);
+        LONGS_EQUAL(expectedValue, actualValue);
+    }
+    void FillSequenceWith(size_t (*formula)(size_t))
+    {
+        for(size_t i=0;i<seq->Length;i++) SetAt(i,seq, formula(i));
+    }
+    void CheckSequenceWith(size_t (*formula)(size_t))
+    {
+        for(size_t i=0;i<seq->Length;i++)
+        {
+            int actual = -1;
+            CHECK_TRUE(GetAt(i, seq, &actual));
+            LONGS_EQUAL(formula(i), actual);
+        }
+    }
+};
+// clang-format on
+TEST(ArraySequence_SuccessCases_SetAt, ShouldReturnExpectedValue_For_In_Bound)
+{
+    AssertSetAtSucess(5, 56);
+}
+TEST(ArraySequence_SuccessCases_SetAt, ShouldReturnExpectedValues_For_All_Set)
+{
+    FillSequenceWith(DoubleIndex);
+    CheckSequenceWith(DoubleIndex);
+}
+TEST_GROUP(ArraySequence_FailureCases_InsertAt)
+{
+    ArraySeq* seq = NULL;
+    void setup() { seq = Build(CorrectAllocationSize); }
+    void teardown() { FreeSeq(&seq); }
+
+    void AssertInsertAtFailureForNull(size_t index, int expectedValue)
+    {
+        CHECK_FALSE(InsertAt(index, NULL, expectedValue));
+    }
+    void AssertInsertAtFailureNullPointer(size_t index, int expectedValue)
+    {
+        ArraySeq* NullPointer = NULL;
+        CHECK_FALSE(InsertAt(index, &NullPointer, expectedValue));
+    }
+    void AssertInsertAtFailureForOutOfBound(size_t outOfBoundIndex, int expectedValue)
+    {
+        CHECK_FALSE(InsertAt(outOfBoundIndex, &seq, expectedValue));
+    }
+};
+TEST(ArraySequence_FailureCases_InsertAt, ShouldReturnNull_When_Failed_Allocation)
+{
+    AssertInsertAtFailureForNull(12, 120);
+    AssertInsertAtFailureNullPointer(12, 120);
+}
+TEST(ArraySequence_FailureCases_InsertAt, ShouldReturnNull_When_Out_Of_Bound)
+{
+    AssertInsertAtFailureForOutOfBound(99000, 65);
+}
+
+// clang-format off
+TEST_GROUP(ArraySequence_SuccessCases_InsertAt)
+{
+    ArraySeq* seq = NULL;
+    void setup() 
+    { 
+        seq = Build(CorrectAllocationSize); 
+    }
+    void teardown() 
+    { 
+        FreeSeq(&seq); 
+    }
+    void FillSequenceWith(int actualSequence[], size_t size)
+    {
+        if (seq->Length < size) CHECK(1 == 0);
+
+        for (size_t i = 0; i < size; i++)
+        {
+            SetAt(i, seq, actualSequence[i]);
+        }
+    }
+    void CheckSequenecWith(int expectedSequence[], size_t size)
+    {
+        if (seq->Length < size) CHECK(1 == 0);
+        
+        for (size_t i = 0; i < size; i++)
+        {
+            SetAt(i, seq, expectedSequence[i]);
+        }
+    }
+};
+// clang-format on
+TEST(ArraySequence_SuccessCases_InsertAt, ShouldReturnExpectedValues_When_Inserted_In_Middle)
+{
+    int actual[] = {10, 20, 30, 40, 50};
+    int expected[] = {10, 20, 999, 30, 40, 50};
+    FillSequenceWith(actual, 5);
+
+    CHECK_TRUE(InsertAt(2, &seq, 999));
+    
+    CheckSequenecWith(expected, 6);
+}
+TEST(ArraySequence_SuccessCases_InsertAt, ShouldReturnExpectedValues_When_Inserted_In_First)
+{
+    int actual[] = {10, 20, 30, 40, 50};
+    int expected[] = {999, 10, 20, 30, 40, 50};
+    FillSequenceWith(actual, 5);
+
+    CHECK_TRUE(InsertAt(0, &seq, 999));
+    
+    CheckSequenecWith(expected, 6);
+}
+TEST(ArraySequence_SuccessCases_InsertAt, ShouldReturnExpectedValues_When_Inserted_In_Last)
+{
+    int actual[] = {10, 20, 30, 40, 50};
+    int expected[] = {10, 20, 30, 40, 999, 50};
+    FillSequenceWith(actual, 5);
+
+    CHECK_TRUE(InsertAt(4, &seq, 999));
+    
+    CheckSequenecWith(expected, 6);
+}
+// clang-format off
+TEST_GROUP(ArraySequence_FailureCases_RemoveAt)
+{
+    ArraySeq* seq = NULL;
+    void setup() 
+    { 
+        seq = Build(CorrectAllocationSize); 
+    }
+    void teardown() 
+    { 
+        FreeSeq(&seq); 
+    }
+    void AssertRemoveAtFailureForNull(size_t index)
+    {
+        CHECK_FALSE(RemoveAt(index, NULL));
+    }
+    void AssertRemoveAtFailureNullPointer(size_t index)
+    {
+        ArraySeq* NullPointer = NULL;
+        CHECK_FALSE(RemoveAt(index, &NullPointer));
+    }
+    void AssertRemoveAtFailureForOutOfBound(size_t outOfBoundIndex)
+    {
+        CHECK_FALSE(RemoveAt(outOfBoundIndex, &seq));
+    }
+};
+// clang-format on
+TEST(ArraySequence_FailureCases_RemoveAt, ShouldReturnNull_When_Failed_Allocation)
+{
+    AssertRemoveAtFailureForNull(12);
+    AssertRemoveAtFailureNullPointer(16);
+    
+}
+TEST(ArraySequence_FailureCases_RemoveAt, ShouldReturnNull_When_Out_Of_Bound) 
+{
+    AssertRemoveAtFailureForOutOfBound(9900);
+}
+// clang-format off
+TEST_GROUP(ArraySequence_SuccessCases_RemoveAt)
+{
+    ArraySeq* seq = NULL;
+    void setup() 
+    { 
+        seq = Build(CorrectAllocationSize); 
+    }
+    void teardown() 
+    { 
+        FreeSeq(&seq); 
+    }
+    void FillSequenceWith(int actualSequence[], size_t size)
+    {
+        if (seq->Length < size) CHECK(1 == 0);
+
+        for (size_t i = 0; i < size; i++)
+        {
+            SetAt(i, seq, actualSequence[i]);
+        }
+    }
+    void CheckSequenecWith(int expectedSequence[], size_t size)
+    {
+        if (seq->Length < size) CHECK(1 == 0);
+        
+        for (size_t i = 0; i < size; i++)
+        {
+            SetAt(i, seq, expectedSequence[i]);
+        }
+    }
+};
+// clang-format on
+TEST(ArraySequence_SuccessCases_RemoveAt, ShouldReturnExpectedValues_When_Removed_In_Middle)
+{
+    int actual[] = {10, 20, 30, 40, 50};
+    int expected[] = {10, 20, 40, 50};
+    FillSequenceWith(actual, 5);
+
+    CHECK_TRUE(RemoveAt(2, &seq));
+    
+    CheckSequenecWith(expected, 4);
+}
+TEST(ArraySequence_SuccessCases_RemoveAt, ShouldReturnExpectedValues_When_Removed_In_First)
+{
+    int actual[] = {10, 20, 30, 40, 50};
+    int expected[] = {20, 30, 40, 50};
+    FillSequenceWith(actual, 5);
+
+    CHECK_TRUE(RemoveAt(0, &seq));
+    
+    CheckSequenecWith(expected, 4);
+}
+TEST(ArraySequence_SuccessCases_RemoveAt, ShouldReturnExpectedValues_When_Removed_In_Last)
+{
+    int actual[] = {10, 20, 30, 40, 50};
+    int expected[] = {10, 20, 30, 40};
+    FillSequenceWith(actual, 5);
+
     CHECK_TRUE(RemoveAt(4, &seq));
-    LONGS_EQUAL(9, seq->Length);
-
-    int expectedValues[9] = {0, 11, 22, 33, 55, 66, 77, 88, 99};
-    for (size_t i = 0; i < seq->Length; i++)
-    {
-        int actualVal = -1;
-        CHECK_TRUE(GetAt(i, seq, &actualVal));
-        LONGS_EQUAL(expectedValues[i], actualVal);
-    }
+    
+    CheckSequenecWith(expected, 4);
 }
-TEST(ArraySeqApi, InsertAt_First_InBound)
-{
-    int actualValues[10] = {0, 11, 22, 33, 44, 55, 66, 77, 88, 99};
-    for (size_t i = 0; i < seq->Length; i++)
-    {
-        SetAt(i, seq, actualValues[i]);
-    }
-    LONGS_EQUAL(10, seq->Length);
-    CHECK_TRUE(InsertAt(0, &seq, 919191));
-    LONGS_EQUAL(11, seq->Length);
 
-    int expectedValues[11] = {919191, 0, 11, 22, 33, 44, 55, 66, 77, 88, 99};
-    for (size_t i = 0; i < seq->Length; i++)
-    {
-        int actualVal = -1;
-        CHECK_TRUE(GetAt(i, seq, &actualVal));
-        LONGS_EQUAL(expectedValues[i], actualVal);
-    }
-}
-TEST(ArraySeqApi, InsertLast_Unit)
+// clang-format off
+TEST_GROUP(ArraySequence_FailureCases_InsertFirst)
 {
     ArraySeq* seq = NULL;
-    CHECK_FALSE(InsertLast(NULL, 99));
-    CHECK_FALSE(InsertLast(&seq, 101));
-}
-TEST(ArraySeqApi, InsertLast)
+    void setup() 
+    { 
+        seq = Build(CorrectAllocationSize); 
+    }
+    void teardown() 
+    { 
+        FreeSeq(&seq); 
+    }
+    void AssertInsertFirstFailureForNull(int expectedValue)
+    {
+        CHECK_FALSE(InsertFirst(NULL, expectedValue));
+    }
+    void AssertInsertFirstFailureNullPointer(int expectedValue)
+    {
+        ArraySeq* NullPointer = NULL;
+        CHECK_FALSE(InsertFirst(&NullPointer, expectedValue));
+    }
+};
+// clang-format on
+TEST(ArraySequence_FailureCases_InsertFirst, ShouldReturnNull_When_Failed_Allocation)
 {
-    int actualValues[10] = {0, 11, 22, 33, 44, 55, 66, 77, 88, 99};
-    for (size_t i = 0; i < seq->Length; i++)
-    {
-        SetAt(i, seq, actualValues[i]);
-    }
-    LONGS_EQUAL(10, seq->Length);
-    CHECK_TRUE(InsertLast(&seq, 919191));
-    LONGS_EQUAL(11, seq->Length);
-    int expectedValues[11] = {0, 11, 22, 33, 44, 55, 66, 77, 88, 99, 919191};
-    for (size_t i = 0; i < seq->Length; i++)
-    {
-        int actualVal = -1;
-        CHECK_TRUE(GetAt(i, seq, &actualVal));
-        LONGS_EQUAL(expectedValues[i], actualVal);
-    }
+    AssertInsertFirstFailureForNull(120);
+    AssertInsertFirstFailureNullPointer(120);
 }
-TEST(ArraySeqApi, InsertFirst)
+
+// clang-format off
+TEST_GROUP(ArraySequence_SuccessCases_InsertFirst)
 {
-    int actualValues[10] = {0, 11, 22, 33, 44, 55, 66, 77, 88, 99};
-    for (size_t i = 0; i < seq->Length; i++)
-    {
-        SetAt(i, seq, actualValues[i]);
+    ArraySeq* seq = NULL;
+    void setup() 
+    { 
+        seq = Build(CorrectAllocationSize); 
     }
-    LONGS_EQUAL(10, seq->Length);
-    CHECK_TRUE(InsertFirst(&seq, 919191));
-    LONGS_EQUAL(11, seq->Length);
-    int expectedValues[11] = {919191, 0, 11, 22, 33, 44, 55, 66, 77, 88, 99};
-    for (size_t i = 0; i < seq->Length; i++)
-    {
-        int actualVal = -1;
-        CHECK_TRUE(GetAt(i, seq, &actualVal));
-        LONGS_EQUAL(expectedValues[i], actualVal);
+    void teardown() 
+    { 
+        FreeSeq(&seq); 
     }
+    void FillSequenceWith(int actualSequence[], size_t size)
+    {
+        if (seq->Length < size) CHECK(1 == 0);
+
+        for (size_t i = 0; i < size; i++)
+        {
+            SetAt(i, seq, actualSequence[i]);
+        }
+    }
+    void CheckSequenecWith(int expectedSequence[], size_t size)
+    {
+        if (seq->Length < size) CHECK(1 == 0);
+        
+        for (size_t i = 0; i < size; i++)
+        {
+            SetAt(i, seq, expectedSequence[i]);
+        }
+    }
+};
+// clang-format on
+TEST(ArraySequence_SuccessCases_InsertFirst, ShouldReturnExpectedValues_When_Inserted_At_First)
+{
+    int actual[] = {10, 20, 30, 40, 50};
+    int expected[] = {999, 10, 20, 30, 40, 50};
+    FillSequenceWith(actual, 5);
+
+    CHECK_TRUE(InsertFirst(&seq, 999));
+    
+    CheckSequenecWith(expected, 6);
 }
-TEST(ArraySeqApi, RemoveFirst)
+
+// clang-format off
+TEST_GROUP(ArraySequence_FailureCases_InsertLast)
 {
-    int actualValues[10] = {0, 11, 22, 33, 44, 55, 66, 77, 88, 99};
-    for (size_t i = 0; i < seq->Length; i++)
-    {
-        SetAt(i, seq, actualValues[i]);
+    ArraySeq* seq = NULL;
+    void setup() 
+    { 
+        seq = Build(CorrectAllocationSize); 
     }
-    LONGS_EQUAL(10, seq->Length);
+    void teardown() 
+    { 
+        FreeSeq(&seq); 
+    }
+    void AssertInsertLastFailureForNull(int expectedValue)
+    {
+        CHECK_FALSE(InsertLast(NULL, expectedValue));
+    }
+    void AssertInsertLastFailureNullPointer(int expectedValue)
+    {
+        ArraySeq* NullPointer = NULL;
+        CHECK_FALSE(InsertLast(&NullPointer, expectedValue));
+    }
+};
+// clang-format on
+TEST(ArraySequence_FailureCases_InsertLast, ShouldReturnNull_When_Failed_Allocation)
+{
+    AssertInsertLastFailureForNull(120);
+    AssertInsertLastFailureNullPointer(120);
+}
+
+// clang-format off
+TEST_GROUP(ArraySequence_SuccessCases_InsertLast)
+{
+    ArraySeq* seq = NULL;
+    void setup() 
+    { 
+        seq = Build(CorrectAllocationSize); 
+    }
+    void teardown() 
+    { 
+        FreeSeq(&seq); 
+    }
+    void FillSequenceWith(int actualSequence[], size_t size)
+    {
+        if (seq->Length < size) CHECK(1 == 0);
+
+        for (size_t i = 0; i < size; i++)
+        {
+            SetAt(i, seq, actualSequence[i]);
+        }
+    }
+    void CheckSequenecWith(int expectedSequence[], size_t size)
+    {
+        if (seq->Length < size) CHECK(1 == 0);
+        
+        for (size_t i = 0; i < size; i++)
+        {
+            SetAt(i, seq, expectedSequence[i]);
+        }
+    }
+};
+// clang-format on
+TEST(ArraySequence_SuccessCases_InsertLast, ShouldReturnExpectedValues_When_Inserted_At_Last)
+{
+    int actual[] = {10, 20, 30, 40, 50};
+    int expected[] = {10, 20, 30, 40, 50, 999};
+    FillSequenceWith(actual, 5);
+
+    CHECK_TRUE(InsertLast(&seq, 999));
+    
+    CheckSequenecWith(expected, 6);
+}
+
+// clang-format off
+TEST_GROUP(ArraySequence_FailureCases_RemoveFirst)
+{
+    ArraySeq* seq = NULL;
+    void setup() 
+    { 
+        seq = Build(CorrectAllocationSize); 
+    }
+    void teardown() 
+    { 
+        FreeSeq(&seq); 
+    }
+    void AssertRemoveFirstFailureForNull()
+    {
+        CHECK_FALSE(RemoveFirst(NULL));
+    }
+    void AssertRemoveFirstFailureNullPointer()
+    {
+        ArraySeq* NullPointer = NULL;
+        CHECK_FALSE(RemoveFirst(&NullPointer));
+    }
+};
+// clang-format on
+TEST(ArraySequence_FailureCases_RemoveFirst, ShouldReturnNull_When_Failed_Allocation)
+{
+    AssertRemoveFirstFailureForNull();
+    AssertRemoveFirstFailureNullPointer();
+}
+
+// clang-format off
+TEST_GROUP(ArraySequence_SuccessCases_RemoveFirst)
+{
+    ArraySeq* seq = NULL;
+    void setup() 
+    { 
+        seq = Build(CorrectAllocationSize); 
+    }
+    void teardown() 
+    { 
+        FreeSeq(&seq); 
+    }
+    void FillSequenceWith(int actualSequence[], size_t size)
+    {
+        if (seq->Length < size) CHECK(1 == 0);
+
+        for (size_t i = 0; i < size; i++)
+        {
+            SetAt(i, seq, actualSequence[i]);
+        }
+    }
+    void CheckSequenecWith(int expectedSequence[], size_t size)
+    {
+        if (seq->Length < size) CHECK(1 == 0);
+        
+        for (size_t i = 0; i < size; i++)
+        {
+            SetAt(i, seq, expectedSequence[i]);
+        }
+    }
+};
+// clang-format on
+TEST(ArraySequence_SuccessCases_RemoveFirst, ShouldReturnExpectedValues_When_Removed_First)
+{
+    int actual[] = {10, 20, 30, 40, 50};
+    int expected[] = {20, 30, 40, 50};
+    FillSequenceWith(actual, 5);
+
     CHECK_TRUE(RemoveFirst(&seq));
-    LONGS_EQUAL(9, seq->Length);
-
-    int expectedValues[9] = {11, 22, 33, 44, 55, 66, 77, 88, 99};
-    for (size_t i = 0; i < seq->Length; i++)
-    {
-        int actualVal = -1;
-        CHECK_TRUE(GetAt(i, seq, &actualVal));
-        LONGS_EQUAL(expectedValues[i], actualVal);
-    }
+    
+    CheckSequenecWith(expected, 4);
 }
-TEST(ArraySeqApi, RemoveLast_Unit)
+
+// clang-format off
+TEST_GROUP(ArraySequence_FailureCases_RemoveLast)
 {
     ArraySeq* seq = NULL;
-    CHECK_FALSE(RemoveLast(NULL));
-    CHECK_FALSE(RemoveLast(&seq));
-}
-TEST(ArraySeqApi, RemoveLast)
+    void setup() 
+    { 
+        seq = Build(CorrectAllocationSize); 
+    }
+    void teardown() 
+    { 
+        FreeSeq(&seq); 
+    }
+    void AssertRemoveLastFailureForNull()
+    {
+        CHECK_FALSE(RemoveLast(NULL));
+    }
+    void AssertRemoveLastFailureNullPointer()
+    {
+        ArraySeq* NullPointer = NULL;
+        CHECK_FALSE(RemoveLast(&NullPointer));
+    }
+};
+// clang-format on
+TEST(ArraySequence_FailureCases_RemoveLast, ShouldReturnNull_When_Failed_Allocation)
 {
-    int actualValues[10] = {0, 11, 22, 33, 44, 55, 66, 77, 88, 99};
-    for (size_t i = 0; i < seq->Length; i++)
-    {
-        SetAt(i, seq, actualValues[i]);
-    }
-    LONGS_EQUAL(10, seq->Length);
-    CHECK_TRUE(RemoveLast(&seq));
-    LONGS_EQUAL(9, seq->Length);
-
-    int expectedValues[9] = {0, 11, 22, 33, 44, 55, 66, 77, 88};
-    for (size_t i = 0; i < seq->Length; i++)
-    {
-        int actualVal = -1;
-        CHECK_TRUE(GetAt(i, seq, &actualVal));
-        LONGS_EQUAL(expectedValues[i], actualVal);
-    }
+    AssertRemoveLastFailureForNull();
+    AssertRemoveLastFailureNullPointer();
 }
-    */
+
+// clang-format off
+TEST_GROUP(ArraySequence_SuccessCases_RemoveLast)
+{
+    ArraySeq* seq = NULL;
+    void setup() 
+    { 
+        seq = Build(CorrectAllocationSize); 
+    }
+    void teardown() 
+    { 
+        FreeSeq(&seq); 
+    }
+    void FillSequenceWith(int actualSequence[], size_t size)
+    {
+        if (seq->Length < size) CHECK(1 == 0);
+
+        for (size_t i = 0; i < size; i++)
+        {
+            SetAt(i, seq, actualSequence[i]);
+        }
+    }
+    void CheckSequenecWith(int expectedSequence[], size_t size)
+    {
+        if (seq->Length < size) CHECK(1 == 0);
+        
+        for (size_t i = 0; i < size; i++)
+        {
+            SetAt(i, seq, expectedSequence[i]);
+        }
+    }
+};
+// clang-format on
+TEST(ArraySequence_SuccessCases_RemoveLast, ShouldReturnExpectedValues_When_Removed_Last)
+{
+    int actual[] = {10, 20, 30, 40, 50};
+    int expected[] = {10, 20, 30, 40};
+    FillSequenceWith(actual, 5);
+
+    CHECK_TRUE(RemoveLast(&seq));
+    
+    CheckSequenecWith(expected, 4);
+}
