@@ -4,6 +4,8 @@
         "string_view": "c",
         "initializer_list": "c",
         "arrayseq.h": "c",
-        "core.h": "c"
+        "core.h": "c",
+        "coretesthelper.h": "c",
+        "stdbool.h": "c"
     }
 }
